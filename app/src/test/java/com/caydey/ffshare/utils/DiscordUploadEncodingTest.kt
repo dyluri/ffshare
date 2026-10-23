@@ -111,9 +111,14 @@ class DiscordUploadEncodingTest {
     private fun file(name: String) = File(files.root, name)
 
     private fun available(tool: String) = try {
-        val process = ProcessBuilder(tool, "-version").redirectOutput(ProcessBuilder.Redirect.DISCARD)
-            .redirectError(ProcessBuilder.Redirect.DISCARD).start()
-        process.waitFor(10, TimeUnit.SECONDS) && process.exitValue() == 0
+        val log = File.createTempFile("ffmpeg-version-", ".log", files.root)
+        val process = ProcessBuilder(tool, "-version").redirectErrorStream(true).redirectOutput(log).start()
+        if (process.waitFor(10, TimeUnit.SECONDS)) {
+            process.exitValue() == 0
+        } else {
+            process.destroyForcibly()
+            false
+        }
     } catch (_: java.io.IOException) {
         false
     }
