@@ -40,6 +40,13 @@ class Utils(private val context: Context) {
         return Pair(outputFile, fileExtension)
     }
     private fun getOutputFileMediaType(inputFileMediaType: MediaType): MediaType {
+        if (settings.discordUpload) {
+            return when {
+                isVideo(inputFileMediaType) || inputFileMediaType == MediaType.GIF -> MediaType.MP4
+                isAudio(inputFileMediaType) -> MediaType.AAC
+                else -> MediaType.WEBP
+            }
+        }
         var outputMediaType: MediaType = MediaType.UNKNOWN
         if (isVideo(inputFileMediaType)) {
             outputMediaType = settings.videoConversionOutput;

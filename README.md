@@ -13,6 +13,25 @@
 
 An android app to compress image, video and audio files through ffmpeg before sharing them
 
+## Discord uploads
+
+Enable **Settings → Compression options → Discord 20 MB** to target **less than
+20,000,000 bytes per file**. This opt-in preset overrides manual codecs, custom
+FFmpeg parameters, conversion settings, and Exif copying without changing their
+saved values. Turn it off to restore normal behavior.
+
+Videos and GIFs become H.264/AAC MP4, audio becomes AAC, and static images become
+lossy WebP (preserving transparency). The preset budgets 5% for container overhead,
+adapts bitrate, resolution and maximum frame rate, and checks the completed file.
+Oversized results are discarded and retried from the original source at lower
+settings, with **three attempts total**. It never truncates a clip to meet the
+limit. Very long media or invalid duration information may prevent a usable
+result; the app reports failure rather than sharing an oversized file.
+
+Enable **Settings → Enable logs** before reproducing compression problems.
+The Logs screen records the FFmpeg command, encoder output and measured file size
+for each completed attempt, including attempts rejected for exceeding the limit.
+
 ## Images
 
 <p align="left">

@@ -69,6 +69,11 @@
     <PreferenceCategory
         android:key="prefs_compression"
         android:title="@string/settings_compression_options_title">
+        <SwitchPreference
+            android:key="pref_discord_upload"
+            android:defaultValue="false"
+            android:title="@string/settings_discord_upload"
+            android:summary="@string/settings_discord_upload_summary" />
         <ListPreference
             android:key="pref_jpeg_qscale"
             android:defaultValue="10"
