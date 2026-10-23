@@ -55,7 +55,9 @@ for each completed attempt, including attempts rejected for exceeding the limit.
   signing credentials are needed; release signing still uses the existing
   `FFSHARE_RELEASE_*` Gradle properties when all four are supplied.
 - The **Build test APK** GitHub Actions workflow builds PRs and can also be run
-  manually. Open its successful run, download **FFShare-debug** from **Artifacts**,
+  manually. Agent-created workflow runs may require the repository owner to
+  click **Approve and run workflows** on the PR before they can start.
+  Open its successful run, download **FFShare-debug** from **Artifacts**,
   unzip it, and install the APK on an ARM Android device (Android 8 or newer).
   A debug APK cannot update an installed release signed with a different key;
   uninstall that release first if Android reports a signing conflict (this
