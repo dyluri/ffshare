@@ -32,10 +32,12 @@ class MediaCompressor(private val context: Context) {
     private val ffmpegParamMaker = FFmpegParamMaker(settings, utils)
     private val operationLock = Any()
     private var cancelCurrentOperation: (() -> Unit)? = null
+    private val cancelled = AtomicBoolean(false)
 
     fun cancelAllOperations() {
         synchronized(operationLock) {
             Timber.d("Canceling all ffmpeg operations")
+            cancelled.set(true)
             FFmpegKit.cancel()
             cancelCurrentOperation?.invoke()
         }
@@ -61,29 +63,38 @@ class MediaCompressor(private val context: Context) {
         // cancel button
         val finished = AtomicBoolean(false)
         fun finishFailure() {
-            synchronized(operationLock) {
+            val notify = synchronized(operationLock) {
                 if (finished.compareAndSet(false, true)) {
                     cancelCurrentOperation = null
-                    failureHandler()
-                }
+                    true
+                } else false
             }
+            if (notify) Handler(Looper.getMainLooper()).post { failureHandler() }
         }
         synchronized(operationLock) {
+            if (cancelled.get()) {
+                finishFailure()
+                return
+            }
             cancelCurrentOperation = { finishFailure() }
         }
         val btnCancel: Button = activity.findViewById(R.id.btnCancel)
-        btnCancel.setOnClickListener {
-            synchronized(operationLock) {
-                if (!finished.get()) {
-                    Toast.makeText(context, context.getString(R.string.ffmpeg_canceled), Toast.LENGTH_LONG).show()
-                    cancelAllOperations()
+        Handler(Looper.getMainLooper()).post {
+            btnCancel.setOnClickListener {
+                synchronized(operationLock) {
+                    if (!finished.get()) {
+                        Toast.makeText(context, context.getString(R.string.ffmpeg_canceled), Toast.LENGTH_LONG).show()
+                        cancelAllOperations()
+                    }
                 }
             }
         }
 
         val mediaType = utils.getMediaType(inputFileUri)
         if (!utils.isSupportedMediaType(mediaType)) { // not supported show error
-            Toast.makeText(context, context.getString(R.string.error_unknown_filetype), Toast.LENGTH_LONG).show()
+            Handler(Looper.getMainLooper()).post {
+                Toast.makeText(context, context.getString(R.string.error_unknown_filetype), Toast.LENGTH_LONG).show()
+            }
             finishFailure()
             return
         }
@@ -91,7 +102,9 @@ class MediaCompressor(private val context: Context) {
         val discordUpload = settings.discordUpload
         // don't show progress when compressing images (not possible)
         val showProgress = !utils.isImage(mediaType) || (discordUpload && mediaType == Utils.MediaType.GIF)
-        processedTableRow.visibility = if (showProgress) View.VISIBLE else View.INVISIBLE
+        Handler(Looper.getMainLooper()).post {
+            processedTableRow.visibility = if (showProgress) View.VISIBLE else View.INVISIBLE
+        }
 
         val inputFileName = utils.getFilenameFromUri(inputFileUri) ?: "unknown"
 
@@ -110,7 +123,9 @@ class MediaCompressor(private val context: Context) {
         }
         if (mediaInformation == null) {
             Timber.d("Unable to get media information, throwing error")
-            Toast.makeText(context, context.getString(R.string.error_invalid_file), Toast.LENGTH_LONG).show()
+            Handler(Looper.getMainLooper()).post {
+                Toast.makeText(context, context.getString(R.string.error_invalid_file), Toast.LENGTH_LONG).show()
+            }
             finishFailure()
             return
         }
@@ -123,7 +138,9 @@ class MediaCompressor(private val context: Context) {
             if ((!discordUpload && mediaInformation.getSize() == null) || mediaInformation.getDuration() == null) {
                 Timber.d("Unable to get size & duration for media, throwing error")
                 val message = if (discordUpload) R.string.discord_upload_failed else R.string.error_invalid_file
-                Toast.makeText(context, context.getString(message), Toast.LENGTH_LONG).show()
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(context, context.getString(message), Toast.LENGTH_LONG).show()
+                }
                 finishFailure()
                 return
             }
@@ -146,8 +163,8 @@ class MediaCompressor(private val context: Context) {
                 outputFile.delete()
                 Handler(Looper.getMainLooper()).post {
                     Toast.makeText(context, context.getString(message), Toast.LENGTH_LONG).show()
+                    failureHandler()
                 }
-                failureHandler()
             }
         }
 
@@ -178,6 +195,7 @@ class MediaCompressor(private val context: Context) {
 
                 Timber.d("Executing ffmpeg command (attempt %d): 'ffmpeg %s'", attempt + 1, command)
                 FFmpegKit.executeAsync(command, { session ->
+                    var completedSize: Long? = null
                     synchronized(operationLock) {
                         if (finished.get()) {
                             outputFile.delete()
@@ -223,8 +241,9 @@ class MediaCompressor(private val context: Context) {
                             txtProcessedTime.text = utils.millisToMicrowaveTime(duration)
                             txtOutputFileSize.text = utils.bytesToHuman(outputSize)
                         }
-                        successHandler(outputFileUri, inputFileSize, outputSize)
+                        completedSize = outputSize
                     }
+                    completedSize?.let { successHandler(outputFileUri, inputFileSize, it) }
                 }, { /* logs */ }, { statistics ->
                     Handler(Looper.getMainLooper()).post {
                         if (!finished.get()) {
@@ -244,6 +263,7 @@ class MediaCompressor(private val context: Context) {
     }
 
     fun compressFiles(activity: Activity, inputFilesUri: ArrayList<Uri>, callback: (uris: ArrayList<Uri>) -> Unit) {
+        cancelled.set(false)
         val txtCommandNumber: TextView = activity.findViewById(R.id.txtCommandNumber)
 
         val inputFilesCount = inputFilesUri.size
@@ -256,8 +276,10 @@ class MediaCompressor(private val context: Context) {
         // since we are working with callbacks a simple for loop wont work
         lateinit var iteratorFunction: (Int, Boolean) -> Unit
         iteratorFunction = fun(i, error) {
-            if (error) {
-                callback(compressedFiles)
+            if (error || cancelled.get()) {
+                Handler(Looper.getMainLooper()).post {
+                    callback(if (cancelled.get()) ArrayList() else compressedFiles)
+                }
                 return
             }
             // base case
@@ -291,7 +313,9 @@ class MediaCompressor(private val context: Context) {
                         Toast.makeText(context, toastMessage, Toast.LENGTH_LONG).show()
                     }
                 }
-                callback(compressedFiles)
+                Handler(Looper.getMainLooper()).post {
+                    callback(if (cancelled.get()) ArrayList() else compressedFiles)
+                }
             }
         }
         iteratorFunction(0, false) // start iterations

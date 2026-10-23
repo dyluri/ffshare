@@ -44,6 +44,11 @@ for each completed attempt, including attempts rejected for exceeding the limit.
 ## Building
 
 - Create ffmpeg-kit binaries by running `./build_ffmpegkit.sh`
+- Run JVM tests with `./gradlew testDebugUnitTest`. The representative-media tests
+  additionally require host `ffmpeg` and `ffprobe` on `PATH` (otherwise they skip).
+  They check decoding, duration, odd dimensions, animation, transparency, and
+  each retry's encoding settings. Device settings tests use
+  `./gradlew connectedDebugAndroidTest`.
 
 ## Used Libraries
 
