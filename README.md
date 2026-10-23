@@ -43,7 +43,23 @@ for each completed attempt, including attempts rejected for exceeding the limit.
 
 ## Building
 
-- Create ffmpeg-kit binaries by running `./build_ffmpegkit.sh`
+- Use JDK 17 and Android SDK platform 34. Gradle is supplied by `./gradlew`.
+- Create FFmpegKitNext binaries with `./build_ffmpegkit.sh` (requires Nix), or run
+  `./build_ffmpegkit.sh --prebuilt` to download the checksum-pinned **community**
+  full-GPL ARM64/ARMv7 build from
+  [XiaoHao560/ffmpeg-kit-next v8.1.1](https://github.com/XiaoHao560/ffmpeg-kit-next/releases/tag/v8.1.1).
+  This is not an official Arthenica binary. The archive SHA-256 is verified before
+  installing the AAR under `app/libs`; native codecs include x264 and WebP.
+- Build an installable, debug-signed test APK with `./gradlew assembleDebug`.
+  Find it at `app/build/outputs/apk/debug/app-universal-debug.apk`. No release
+  signing credentials are needed; release signing still uses the existing
+  `FFSHARE_RELEASE_*` Gradle properties when all four are supplied.
+- The **Build test APK** GitHub Actions workflow builds PRs and can also be run
+  manually. Open its successful run, download **FFShare-debug** from **Artifacts**,
+  unzip it, and install the APK on an ARM Android device (Android 8 or newer).
+  A debug APK cannot update an installed release signed with a different key;
+  uninstall that release first if Android reports a signing conflict (this
+  removes its app settings). Debug APKs are for testing, not production releases.
 - Run JVM tests with `./gradlew testDebugUnitTest`. The representative-media tests
   additionally require host `ffmpeg` and `ffprobe` on `PATH` (otherwise they skip).
   They check decoding, duration, odd dimensions, animation, transparency, and
