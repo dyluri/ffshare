@@ -1,0 +1,43 @@
+name: Build test APK
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - main
+      - copilot/adjust-video-compression-settings
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  debug-apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Download verified FFmpegKitNext community binary
+        run: ./build_ffmpegkit.sh --prebuilt
+      - name: Install host FFmpeg for encoding tests
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Test and build debug APK
+        run: ./gradlew --no-daemon testDebugUnitTest assembleDebug
+      - name: Upload installable APK
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: FFShare-debug
+          path: app/build/outputs/apk/debug/app-universal-debug.apk
+          if-no-files-found: error
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: test-reports
+          path: app/build/reports/tests/
+          if-no-files-found: ignore

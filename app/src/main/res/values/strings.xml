@@ -12,6 +12,8 @@
 
     <string name="ffmpeg_error">Error compressing media</string>
     <string name="ffmpeg_canceled">Canceled</string>
+    <string name="discord_upload_failed">Could not fit this media under 20 MB at usable quality. Try a shorter clip or smaller image.</string>
+    <string name="discord_upload_retry">Output exceeded 20 MB. Retrying with lower settings (%1$d/%2$d).</string>
 
     <string name="close">Close</string>
     <string name="ffmpegCommandTitle">FFmpeg command</string>
@@ -57,6 +59,8 @@
     <string name="settings_save_logs_summary">Save all executed FFmpeg commands</string>
 
     <string name="settings_compression_options_title">Compression options</string>
+    <string name="settings_discord_upload">Discord 20 MB</string>
+    <string name="settings_discord_upload_summary">Automatically fit each file under 20,000,000 bytes. Overrides manual encoding, conversion, custom parameters and Exif settings: video/GIF → MP4, audio → AAC, static images → WebP. Up to three attempts; very long media may not fit at usable quality.</string>
     <string name="settings_conversions_options_title">Conversion options</string>
     <string name="settings_output_options_title">Output Options</string>
 
