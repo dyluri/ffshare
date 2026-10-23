@@ -115,7 +115,16 @@ class DiscordUploadTargetTest {
         assertTrue(params.contains("force_original_aspect_ratio=decrease"))
         assertTrue(params.contains("format=yuv420p"))
         assertTrue(params.contains("-map_metadata -1"))
-        assertTrue(params.contains("-movflags +faststart"))
+    }
+
+    @Test
+    fun videoDoesNotRequireReadingBackWriteOnlySafOutput() {
+        for (hasAudio in listOf(true, false)) {
+            for (attempt in 0 until DiscordUploadTarget.MAX_ATTEMPTS) {
+                val params = video(60.0, hasAudio).parameters(attempt)!!
+                assertFalse(params.contains("faststart"))
+            }
+        }
     }
 
     private fun video(duration: Double, hasAudio: Boolean = true) =

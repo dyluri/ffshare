@@ -45,10 +45,10 @@ class DiscordUploadTarget(
             else -> 30
         }
         val audio = if (hasAudio) "-map 0:a:0? -c:a aac -ac 2 -b:a ${audioKbps}k" else "-an"
+        // SAF output is write-only; faststart needs to reopen it for reading.
         return "-map 0:v:0 $audio $metadata -c:v libx264 -preset medium " +
             "-b:v ${videoKbps}k -maxrate ${videoKbps}k -bufsize ${videoKbps * 2}k " +
-            "-fpsmax $fps -vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2,${scale(edge)},pad=ceil(iw/2)*2:ceil(ih/2)*2,setsar=1,format=yuv420p\" " +
-            "-movflags +faststart"
+            "-fpsmax $fps -vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2,${scale(edge)},pad=ceil(iw/2)*2:ceil(ih/2)*2,setsar=1,format=yuv420p\""
     }
 
     private fun scale(edge: Int) =
